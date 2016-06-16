@@ -1,11 +1,25 @@
 # `alpine-ruby`: Minimal Ruby image
 
-This is a *VERY* small mri ruby 2.2.3 image. It uses the [Alpine Linux](https://www.alpinelinux.org) ruby packages, and has `bundler` and minimal ruby packages installed.
+This is based on `cybercode/alpine-ruby:2.2`
+
+This is a small MRI Ruby 2.3 image. It uses the [Alpine Linux](https://www.alpinelinux.org) ruby packages, and has `bundler` and minimal ruby packages installed.
+
+## Building
+
+```
+make
+```
+
+To push
+
+```
+make push
+```
 
 ## Using this package
- 
+
 ``` Dockerfile
-FROM cybercode/alpine-ruby:2.2
+FROM legalio/alpine-ruby:2.3
 CMD["/mycommand"]
 ```
 
