@@ -1,7 +1,7 @@
 # Makefile for creating container file
 # Override these with environmental variables
-VERSION?=2.3
-FULL_VERSION?=2.3.2
+VERSION?=2.4
+FULL_VERSION?=2.4.1
 
 ### Do not override below
 

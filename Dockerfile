@@ -16,10 +16,12 @@ RUN mkdir -p /usr/local/etc \
         echo 'update: --no-document'; \
     } >> /usr/local/etc/gemrc
 
-ENV RUBY_MAJOR 2.3
-ENV RUBY_VERSION 2.3.2
-ENV RUBY_DOWNLOAD_SHA256 8d7f6ca0f16d77e3d242b24da38985b7539f58dc0da177ec633a83d0c8f5b197
-ENV RUBYGEMS_VERSION 2.6.8
+ENV RUBY_MAJOR 2.4
+ENV RUBY_VERSION 2.4.1
+ENV RUBY_DOWNLOAD_SHA256 a330e10d5cb5e53b3a0078326c5731888bb55e32c4abfeb27d9e7f8e5d000250
+ENV RUBYGEMS_VERSION 2.6.11
+
+RUN apk --no-cache -U upgrade
 
 # some of ruby's build scripts are written in ruby
 #   we purge system ruby later to make sure our final image uses what we just built
@@ -100,11 +102,10 @@ RUN set -ex \
 
 RUN echo 'gem: --no-rdoc --no-ri' > /etc/gemrc
 
-ENV BUNDLER_VERSION 1.13.6
+ENV BUNDLER_VERSION 1.14.6
 
 RUN gem install bundler --version "$BUNDLER_VERSION" \
     && rm -r /root/.gem \
     && find / -name '*.gem' | xargs rm
-
 
 CMD [ "irb" ]
