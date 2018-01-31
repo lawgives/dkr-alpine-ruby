@@ -1,4 +1,4 @@
-FROM alpine:3.4
+FROM alpine:3.7
 
 # System Ruby will segfault with irb because Ruby was not
 # compiled with readline-dev
@@ -9,17 +9,13 @@ FROM alpine:3.4
 #     libstdc++ tzdata bash \
 #  && rm -rf /var/cache/apk/*
 
-# skip installing gem documentation
-RUN mkdir -p /usr/local/etc \
-    && { \
-        echo 'install: --no-document'; \
-        echo 'update: --no-document'; \
-    } >> /usr/local/etc/gemrc
+# Hosh: Taken from https://github.com/docker-library/ruby/blob/c9a4472a019d18aba1fdab6a63b96474b40ca191/2.5/alpine3.7/Dockerfile
+# Modified bundler magic to work better for Legal.io's needs.
 
-ENV RUBY_MAJOR 2.4
-ENV RUBY_VERSION 2.4.1
-ENV RUBY_DOWNLOAD_SHA256 a330e10d5cb5e53b3a0078326c5731888bb55e32c4abfeb27d9e7f8e5d000250
-ENV RUBYGEMS_VERSION 2.6.11
+ENV RUBY_MAJOR 2.5
+ENV RUBY_VERSION 2.5.0
+ENV RUBY_DOWNLOAD_SHA256 1da0afed833a0dab94075221a615c14487b05d0c407f991c8080d576d985b49b
+ENV RUBYGEMS_VERSION 2.7.4
 
 RUN apk --no-cache -U upgrade
 
@@ -27,83 +23,90 @@ RUN apk --no-cache -U upgrade
 #   we purge system ruby later to make sure our final image uses what we just built
 # readline-dev vs libedit-dev: https://bugs.ruby-lang.org/issues/11869 and https://github.com/docker-library/ruby/issues/75
 RUN set -ex \
-    \
-    && apk add --no-cache --virtual .ruby-builddeps \
-        autoconf \
-        bison \
-        bzip2 \
-        bzip2-dev \
-        ca-certificates \
-        coreutils \
-        gcc \
-        gdbm-dev \
-        glib-dev \
-        libc-dev \
-        libffi-dev \
-        libxml2-dev \
-        libxslt-dev \
-        linux-headers \
-        make \
-        ncurses-dev \
-        openssl \
-        openssl-dev \
-        procps \
-        readline-dev \
-        ruby \
-        tar \
-        yaml-dev \
-        zlib-dev \
-    \
-    && wget -O ruby.tar.gz "https://cache.ruby-lang.org/pub/ruby/$RUBY_MAJOR/ruby-$RUBY_VERSION.tar.gz" \
-    && echo "$RUBY_DOWNLOAD_SHA256 *ruby.tar.gz" | sha256sum -c - \
-    \
-    && mkdir -p /usr/src/ruby \
-    && tar -xzf ruby.tar.gz -C /usr/src/ruby --strip-components=1 \
-    && rm ruby.tar.gz \
-    \
-    && cd /usr/src/ruby \
-    \
+	\
+	&& apk add --no-cache --virtual .ruby-builddeps \
+		autoconf \
+		bison \
+		bzip2 \
+		bzip2-dev \
+		ca-certificates \
+		coreutils \
+		dpkg-dev dpkg \
+		gcc \
+		gdbm-dev \
+		glib-dev \
+		libc-dev \
+		libffi-dev \
+		libressl \
+		libressl-dev \
+		libxml2-dev \
+		libxslt-dev \
+		linux-headers \
+		make \
+		ncurses-dev \
+		procps \
+		readline-dev \
+		ruby \
+		tar \
+		xz \
+		yaml-dev \
+		zlib-dev \
+	\
+	&& wget -O ruby.tar.xz "https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR%-rc}/ruby-$RUBY_VERSION.tar.xz" \
+	&& echo "$RUBY_DOWNLOAD_SHA256 *ruby.tar.xz" | sha256sum -c - \
+	\
+	&& mkdir -p /usr/src/ruby \
+	&& tar -xJf ruby.tar.xz -C /usr/src/ruby --strip-components=1 \
+	&& rm ruby.tar.xz \
+	\
+	&& cd /usr/src/ruby \
+	\
 # hack in "ENABLE_PATH_CHECK" disabling to suppress:
 #   warning: Insecure world writable dir
-    && { \
-        echo '#define ENABLE_PATH_CHECK 0'; \
-        echo; \
-        cat file.c; \
-    } > file.c.new \
-    && mv file.c.new file.c \
-    \
-    && autoconf \
+	&& { \
+		echo '#define ENABLE_PATH_CHECK 0'; \
+		echo; \
+		cat file.c; \
+	} > file.c.new \
+	&& mv file.c.new file.c \
+	\
+	&& autoconf \
+	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
 # the configure script does not detect isnan/isinf as macros
-    && ac_cv_func_isnan=yes ac_cv_func_isinf=yes \
-        ./configure --disable-install-doc \
-    && make -j"$(getconf _NPROCESSORS_ONLN)" \
-    && make install \
-    \
-    && runDeps="$( \
-        scanelf --needed --nobanner --recursive /usr/local \
-            | awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
-            | sort -u \
-            | xargs -r apk info --installed \
-            | sort -u \
-    )" \
-    && apk add --virtual .ruby-rundeps $runDeps \
-        bzip2 \
-        ca-certificates \
-        libffi-dev \
-        openssl-dev \
-        yaml-dev \
-        procps \
-        zlib-dev \
-    && apk del .ruby-builddeps \
-    && cd / \
-    && rm -r /usr/src/ruby \
-    \
-    && gem update --system "$RUBYGEMS_VERSION"
+	&& export ac_cv_func_isnan=yes ac_cv_func_isinf=yes \
+	&& ./configure \
+		--build="$gnuArch" \
+		--disable-install-doc \
+		--enable-shared \
+	&& make -j "$(nproc)" \
+	&& make install \
+	\
+	&& runDeps="$( \
+		scanelf --needed --nobanner --format '%n#p' --recursive /usr/local \
+			| tr ',' '\n' \
+			| sort -u \
+			| awk 'system("[ -e /usr/local/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
+	)" \
+	&& apk add --virtual .ruby-rundeps $runDeps \
+		bzip2 \
+		ca-certificates \
+		libffi-dev \
+		libressl-dev \
+		procps \
+		yaml-dev \
+		zlib-dev \
+	&& apk del .ruby-builddeps \
+	&& cd / \
+	&& rm -r /usr/src/ruby \
+	\
+	&& gem update --system "$RUBYGEMS_VERSION" \
+	&& gem install bundler --version "$BUNDLER_VERSION" --force \
+	&& rm -r /root/.gem/
 
-RUN echo 'gem: --no-rdoc --no-ri' > /etc/gemrc
+ENV BUNDLER_VERSION 1.16.1
 
-ENV BUNDLER_VERSION 1.14.6
-
+# Hosh: Do not do anything fancy with bundler, otherwise this will
+# break dev and other things
 RUN gem install bundler --version "$BUNDLER_VERSION" \
     && rm -r /root/.gem \
     && find / -name '*.gem' | xargs rm
