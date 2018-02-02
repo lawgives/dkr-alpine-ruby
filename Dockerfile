@@ -37,8 +37,8 @@ RUN set -ex \
 		glib-dev \
 		libc-dev \
 		libffi-dev \
-		libressl \
-		libressl-dev \
+		openssl \
+		openssl-dev \
 		libxml2-dev \
 		libxslt-dev \
 		linux-headers \
@@ -91,7 +91,7 @@ RUN set -ex \
 		bzip2 \
 		ca-certificates \
 		libffi-dev \
-		libressl-dev \
+		openssl-dev \
 		procps \
 		yaml-dev \
 		zlib-dev \
