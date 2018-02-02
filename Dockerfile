@@ -12,9 +12,9 @@ FROM alpine:3.7
 # Hosh: Taken from https://github.com/docker-library/ruby/blob/c9a4472a019d18aba1fdab6a63b96474b40ca191/2.5/alpine3.7/Dockerfile
 # Modified bundler magic to work better for Legal.io's needs.
 
-ENV RUBY_MAJOR 2.5
-ENV RUBY_VERSION 2.5.0
-ENV RUBY_DOWNLOAD_SHA256 1da0afed833a0dab94075221a615c14487b05d0c407f991c8080d576d985b49b
+ENV RUBY_MAJOR 2.4
+ENV RUBY_VERSION 2.4.3
+ENV RUBY_DOWNLOAD_SHA256 23677d40bf3b7621ba64593c978df40b1e026d8653c74a0599f0ead78ed92b51
 ENV RUBYGEMS_VERSION 2.7.4
 
 RUN apk --no-cache -U upgrade
@@ -37,8 +37,8 @@ RUN set -ex \
 		glib-dev \
 		libc-dev \
 		libffi-dev \
-		openssl \
-		openssl-dev \
+		libressl \
+		libressl-dev \
 		libxml2-dev \
 		libxslt-dev \
 		linux-headers \
@@ -91,7 +91,7 @@ RUN set -ex \
 		bzip2 \
 		ca-certificates \
 		libffi-dev \
-		openssl-dev \
+		libressl-dev \
 		procps \
 		yaml-dev \
 		zlib-dev \
